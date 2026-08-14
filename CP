@@ -1,0 +1,9 @@
+@echo off
+echo hi
+timeout /t 3 >nul
+echo takeing important files
+echo takeing all paswords
+timeout /t 5 >nul
+echo Done
+timeout /t 2 >nul
+exit
