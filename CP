@@ -1,275 +1,360 @@
-@echo off
-color 5
-echo =====================================================
-echo      \\This text is dumped by Nova menu//
-echo                   \\Menu//
-echo                   Fix menu.
-echo               Better gui F0R cmd.
-echo                \\added mods//
-echo            Black Backpack spawner.
-echo                revolver spawner.
-echo               tripwire spawner.
-echo                RPG Ammo spawner.
-echo                 Crate spawner.
-echo	              New tuff themes.
-echo                   \\Bugs//
-echo       the new theme doesnt show the gun lib .
-timeout /t 5 >nul
-chcp 65001
-title                                                                                                                                                                                                                                                           RAZZY.1 Nova Launcher
-color 5
+import os
+import json
+import subprocess
+from datetime import datetime
 
-:menu
-cls
-echo ===================================================================================================================
-echo       ┌╦═╗ ╦┐ ┌╦═══╦┐ ┌╦   ╦┐ ┌╦═══╦┐      ┌╔═╦═╗┐ ┌╦═╗ ╦┐ ┌╦═══╦┐ ┌╦═══╦┐ ┌╦═══╦┐ ┌╔═╦═╗┐ ┌╦═══╦┐ ┌╦═══╦┐
-echo       │║ ║ ║│ │║   ║│ │╚╗ ╔╝│ ├╬═══╬│         ║    │║ ║ ║│      ║│ ├╬══    │║         ║    │║   ║│ │╠══╦╩┘
-echo        ╩ ╚═╩┘ └╩═══╩┘ └─╚═╝─┘ └╩   ╩┘      └╚═╩═╝┘ └╩ ╚═╩┘ └╩═══╩┘ └╩═══╩┘ └╩═══╩┘    ╩    └╩═══╩┘ └╩  ╚═┘
-echo ===================================================================================================================
-echo.
-echo 1. open Nova Menu injector  
-echo.            
-echo 2. open Bypass injector
-echo.
-echo 3. FCS Menu injector
-echo.
-echo 4. Open pictures folder
-echo.
-echo 5. Update Logs
-echo.
-echo 6. Open Animal Company
-echo.
-echo 7. Open SteamVR
-echo.
-echo 8. Stop Animal Company
-echo.
-echo 9. Stop SteamVR
-echo.
-echo 10. Credits
-echo.
-echo 11. Settings
-echo.
-echo 12. Exit
-echo.                                         
-set /p choice=Choose an option (1-12): 
-
-if "%choice%"=="1" goto Nova Menu
-if "%choice%"=="2" goto Bypass
-if "%choice%"=="3" goto FCS Menu
-if "%choice%"=="4" goto openAnimalFolders
-if "%choice%"=="5" goto Update Logs
-if "%choice%"=="6" goto OpenAnimalCompany
-if "%choice%"=="7" goto openSteamVR
-if "%choice%"=="8" goto StopAnimalCompany
-if "%choice%"=="9" goto StopSteamVR
-if "%choice%"=="10" goto credits
-if "%choice%"=="11" goto settings
-if "%choice%"=="12" goto exit
+CONFIG_FILE = "config.json"
+LOG_DIR = "logs"
+LOG_FILE = os.path.join(LOG_DIR, "launcher.log")
 
 
-:Nova Menu
-echo Launching Nova Menu...
-timeout /t 1 >nul
-cd /d "%~dp0Mods Helper" || exit /b 1
-start "" cmd /k frida -l "frida-il2cpp-bridge.js" -l "symbols.ts" -l "qs-unpatchable.ts" -l "NOVA.ts" "EACLauncher.exe"
-goto menu
+DEFAULT_CONFIG = {
+    "animal_company_path": "",
+    "steamvr_path": ""
+}
 
-:Bypass
-echo Launching Bypass...
-timeout /t 1 >nul
-cd /d "%~dp0Mods Helper" || exit /b 1
-start "" cmd /k py -3 "%~dp0Mods Helper\bypass.py" 
-pause
-goto menu
 
-:FCS Menu
-echo Launching FCS Menu...
-timeout /t 1 >nul
-cd /d "%~dp0Mods Helper" || exit /b 1
-start "" cmd /k frida -l "frida-il2cpp-bridge.js" -l "symbols.ts" -l "m4.ts" -l "da.ts" "EACLauncher.exe"
-pause
-goto menu
+# -----------------------------
+# Setup
+# -----------------------------
 
-:openAnimalFolders
-echo opening Animal Company folders...
-timeout /t 1 >nul
-start "" explorer "D:\SteamLibrary\steamapps\common\Animal Company"
-goto menu
+def setup():
+    os.makedirs(LOG_DIR, exist_ok=True)
 
-:OpenAnimalCompany
-echo Launching Animal Company...
-timeout /t 1 >nul
-set "GAME_DIR=D:\SteamLibrary\steamapps\common\Animal Company"
-if exist "%GAME_DIR%\EACLauncher.exe" (
-	start "" "%GAME_DIR%\EACLauncher.exe"
-) else (
-	if exist "%GAME_DIR%\AnimalCompany.exe" (
-		start "" "%GAME_DIR%\AnimalCompany.exe"
-	) else (
-		start "" explorer "%GAME_DIR%"
-	)
-)
-goto menu
+    if not os.path.exists(CONFIG_FILE):
+        with open(CONFIG_FILE, "w") as f:
+            json.dump(DEFAULT_CONFIG, f, indent=4)
 
-:StopAnimalCompany
-timeout /t 1 >nul
-echo Stopping Animal Company...
-set "GAME_DIR=D:\SteamLibrary\steamapps\common\Animal Company"
+    if not os.path.exists(LOG_FILE):
+        open(LOG_FILE, "w").close()
 
-tasklist /FI "IMAGENAME eq EACLauncher.exe" | find /I "EACLauncher.exe" >nul
-if %ERRORLEVEL%==0 (
-	taskkill /IM EACLauncher.exe /F >nul 2>&1
-	echo Killed EACLauncher.exe
-) else (
-	echo EACLauncher.exe not running.
-)
 
-tasklist /FI "IMAGENAME eq AnimalCompany.exe" | find /I "AnimalCompany.exe" >nul
-if %ERRORLEVEL%==0 (
-	taskkill /IM AnimalCompany.exe /F >nul 2>&1
-	echo Killed AnimalCompany.exe
-) else (
-	echo AnimalCompany.exe not running.
-)
+def load_config():
+    try:
+        with open(CONFIG_FILE, "r") as f:
+            return json.load(f)
+    except Exception:
+        return DEFAULT_CONFIG.copy()
 
-rem also try to close common launcher processes (optional)
-tasklist /FI "IMAGENAME eq frida.exe" | find /I "frida.exe" >nul
-if %ERRORLEVEL%==0 (
-	taskkill /IM frida.exe /F >nul 2>&1
-	echo Killed frida.exe
-)
 
-pause
-goto menu
+def save_config(config):
+    with open(CONFIG_FILE, "w") as f:
+        json.dump(config, f, indent=4)
 
-:OpenSteamVR
-echo Launching SteamVR...
-timeout /t 1 >nul
-set "STEAM_VR_URL=steam://run/250820"
-if exist "%ProgramFiles(x86)%\Steam\steamapps\common\SteamVR\bin\win64\vrmonitor.exe" (
-	start "" "%ProgramFiles(x86)%\Steam\steamapps\common\SteamVR\bin\win64\vrmonitor.exe"
-) else if exist "%ProgramFiles%\Steam\steamapps\common\SteamVR\bin\win64\vrmonitor.exe" (
-	start "" "%ProgramFiles%\Steam\steamapps\common\SteamVR\bin\win64\vrmonitor.exe"
-) else (
-	start "" "%STEAM_VR_URL%"
-)
-goto menu
 
-:StopSteamVR
-echo Stopping SteamVR...
-timeout /t 1 >nul
+# -----------------------------
+# Logging
+# -----------------------------
 
-tasklist /FI "IMAGENAME eq vrmonitor.exe" | find /I "vrmonitor.exe" >nul
-if %ERRORLEVEL%==0 (
-	taskkill /IM vrmonitor.exe /F >nul 2>&1
-	echo Killed vrmonitor.exe
-) else (
-	echo vrmonitor.exe not running.
-)
+def log(message):
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-tasklist /FI "IMAGENAME eq vrserver.exe" | find /I "vrserver.exe" >nul
-if %ERRORLEVEL%==0 (
-	taskkill /IM vrserver.exe /F >nul 2>&1
-	echo Killed vrserver.exe
-) else (
-	echo vrserver.exe not running.
-)
+    with open(LOG_FILE, "a", encoding="utf-8") as f:
+        f.write(f"[{timestamp}] {message}\n")
 
-tasklist /FI "IMAGENAME eq vrcompositor.exe" | find /I "vrcompositor.exe" >nul
-if %ERRORLEVEL%==0 (
-	taskkill /IM vrcompositor.exe /F >nul 2>&1
-	echo Killed vrcompositor.exe
-) else (
-	echo vrcompositor.exe not running.
-)
-pause
-goto menu
 
-:Update Logs
-timeout /t 1 >nul
-echo opening update logs...
-timeout /t 2 >nul
-echo =====================================================
-echo      \\This text is dumped by Nova menu//
-echo                   \\Menu//
-echo                   Fix menu.
-echo               Better gui F0R cmd.
-echo                \\added mods//
-echo            Black Backpack spawner.
-echo                revolver spawner.
-echo               tripwire spawner.
-echo                RPG Ammo spawner.
-echo                 Crate spawner.
-echo				New tuff themes.
-echo                   \\Bugs//
-echo       the new theme doesnt show the gun lib .
-echo                                 
-pause
-goto menu
+def info(message):
+    print(f"\033[96m[INFO]\033[0m {message}")
+    log(f"INFO: {message}")
 
-:credits
-cls
-echo ==========================
-echo         CREDITS
-echo ==========================
-echo.
-echo Nova Launcher
-echo Created by: RAZZY.1
-echo UI Designed in CMD
-echo.
 
-pause
-goto menu
+def success(message):
+    print(f"\033[92m[OK]\033[0m {message}")
+    log(f"OK: {message}")
 
-:settings
-cls
-echo ==========================
-echo        SETTINGS
-echo ==========================
-echo.
-echo 1. Purple Theme
-echo 2. Blue Theme
-echo 3. Green Theme
-echo 4. Aqua Theme
-echo 5. Red Theme
-echo 6. Purple Theme
-echo 7. Yellow Theme
-echo 8. White Theme
-echo 9. Gray Theme
-echo 10. Light Blue Theme
-echo 11. Light Green Theme
-echo 12. Light Aqua Theme
-echo 13. Light Red Theme
-echo 14. Light Purple Theme
-echo 15. Light Yellow Theme
-echo 16. Bright White Theme
-echo 17. Back to Menu
-echo.
-set /p theme=Choose:
 
-if "%theme%"=="1" color 00
-if "%theme%"=="2" color 01
-if "%theme%"=="3" color 02
-if "%theme%"=="4" color 03
-if "%theme%"=="5" color 04
-if "%theme%"=="6" color 05
-if "%theme%"=="7" color 06
-if "%theme%"=="8" color 07
-if "%theme%"=="9" color 08
-if "%theme%"=="10" color 09
-if "%theme%"=="11" color 0A
-if "%theme%"=="12" color 0B
-if "%theme%"=="13" color 0C
-if "%theme%"=="14" color 0D
-if "%theme%"=="15" color 0E
-if "%theme%"=="16" color 0F
-if "%theme%"=="17" goto menu
+def error(message):
+    print(f"\033[91m[ERROR]\033[0m {message}")
+    log(f"ERROR: {message}")
 
-pause
-goto settings
 
-:exit
-cls
-echo Thanks for using Nova Launcher!
-timeout /t 3 >nul
-exit
+# -----------------------------
+# Launching
+# -----------------------------
+
+def launch_program(path, name):
+    if not path:
+        error(f"{name} path has not been configured.")
+        return
+
+    if not os.path.exists(path):
+        error(f"{name} executable was not found:")
+        print(path)
+        return
+
+    try:
+        subprocess.Popen([path])
+        success(f"{name} launched.")
+    except Exception as e:
+        error(f"Could not launch {name}: {e}")
+
+
+def launch_animal_company():
+    config = load_config()
+    launch_program(
+        config["animal_company_path"],
+        "Animal Company"
+    )
+
+
+def launch_steamvr():
+    config = load_config()
+    launch_program(
+        config["steamvr_path"],
+        "SteamVR"
+    )
+
+
+# -----------------------------
+# Status
+# -----------------------------
+
+def check_status():
+    print("\n--- STATUS ---")
+
+    processes = [
+        "AnimalCompany.exe",
+        "vrserver.exe",
+        "vrmonitor.exe"
+    ]
+
+    try:
+        result = subprocess.check_output(
+            ["tasklist"],
+            text=True,
+            errors="ignore"
+        )
+
+        for process in processes:
+            if process.lower() in result.lower():
+                print(f"\033[92m[RUNNING]\033[0m {process}")
+            else:
+                print(f"\033[90m[OFFLINE]\033[0m  {process}")
+
+    except Exception as e:
+        error(f"Unable to check processes: {e}")
+
+    input("\nPress Enter to continue...")
+
+
+# -----------------------------
+# Logs
+# -----------------------------
+
+def view_logs():
+    os.system("cls")
+
+    print("=" * 60)
+    print("                         LOGS")
+    print("=" * 60)
+
+    try:
+        with open(LOG_FILE, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+
+        if not lines:
+            print("\nNo logs yet.")
+        else:
+            for line in lines[-30:]:
+                print(line.rstrip())
+
+    except Exception as e:
+        error(str(e))
+
+    input("\nPress Enter to continue...")
+
+
+def clear_logs():
+    with open(LOG_FILE, "w") as f:
+        f.write("")
+
+    success("Logs cleared.")
+    input("\nPress Enter to continue...")
+
+
+# -----------------------------
+# Settings
+# -----------------------------
+
+def settings():
+    config = load_config()
+
+    while True:
+        os.system("cls")
+
+        print("=" * 60)
+        print("                       SETTINGS")
+        print("=" * 60)
+
+        print(f"\n1. Animal Company path")
+        print(f"   {config['animal_company_path'] or '[NOT SET]'}")
+
+        print(f"\n2. SteamVR path")
+        print(f"   {config['steamvr_path'] or '[NOT SET]'}")
+
+        print("\n3. Save")
+        print("4. Back")
+
+        choice = input("\nChoose an option: ").strip()
+
+        if choice == "1":
+            path = input("\nEnter Animal Company .exe path:\n> ").strip()
+            config["animal_company_path"] = path
+
+        elif choice == "2":
+            path = input("\nEnter SteamVR .exe path:\n> ").strip()
+            config["steamvr_path"] = path
+
+        elif choice == "3":
+            save_config(config)
+            success("Settings saved.")
+            input("\nPress Enter...")
+
+        elif choice == "4":
+            break
+
+
+# -----------------------------
+# Safe placeholders
+# -----------------------------
+
+def nova_menu():
+    info("Nova Menu selected.")
+    print("\nNova Menu functionality goes here.")
+    print("Keep this function for your own supported application/plugin.")
+    input("\nPress Enter to continue...")
+
+
+def bypass_menu():
+    info("Bypass option selected.")
+    print("\nBypass functionality is not implemented.")
+    input("\nPress Enter to continue...")
+
+
+def fcs_menu():
+    info("FCS Menu selected.")
+    print("\nFCS functionality goes here.")
+    input("\nPress Enter to continue...")
+
+
+# -----------------------------
+# Credits
+# -----------------------------
+
+def credits():
+    os.system("cls")
+
+    print("""
+============================================================
+
+                    NOVA LAUNCHER
+
+                  Created by: RAZZY.1
+
+              Thanks for using Nova Launcher!
+
+============================================================
+""")
+
+    input("Press Enter to continue...")
+
+
+# -----------------------------
+# Main Menu
+# -----------------------------
+
+def main_menu():
+
+    while True:
+        os.system("cls")
+
+        print("\033[95m")
+        print("============================================================")
+        print(r"""
+             ███╗   ██╗ ██████╗ ██╗   ██╗ █████╗
+             ████╗  ██║██╔═══██╗██║   ██║██╔══██╗
+             ██╔██╗ ██║██║   ██║██║   ██║███████║
+             ██║╚██╗██║██║   ██║╚██╗ ██╔╝██╔══██║
+             ██║ ╚████║╚██████╔╝ ╚████╔╝ ██║  ██║
+             ╚═╝  ╚═══╝ ╚═════╝   ╚═══╝  ╚═╝  ╚═╝
+
+                       L A U N C E R
+""")
+        print("============================================================")
+        print("\033[0m")
+
+        print("1.  Open Nova Menu")
+        print("2.  Open Bypass Menu")
+        print("3.  FCS Menu")
+        print("4.  Open Pictures Folder")
+        print("5.  Update Logs")
+        print("6.  Launch Animal Company")
+        print("7.  Launch SteamVR")
+        print("8.  Check Status")
+        print("9.  View Logs")
+        print("10. Clear Logs")
+        print("11. Settings")
+        print("12. Credits")
+        print("13. Exit")
+
+        choice = input("\nChoose an option (1-13): ").strip()
+
+        if choice == "1":
+            nova_menu()
+
+        elif choice == "2":
+            bypass_menu()
+
+        elif choice == "3":
+            fcs_menu()
+
+        elif choice == "4":
+            os.makedirs("pictures", exist_ok=True)
+            os.startfile(os.path.abspath("pictures"))
+
+        elif choice == "5":
+            log("Manual log update requested.")
+            success("Logs updated.")
+            input("\nPress Enter to continue...")
+
+        elif choice == "6":
+            launch_animal_company()
+            input("\nPress Enter to continue...")
+
+        elif choice == "7":
+            launch_steamvr()
+            input("\nPress Enter to continue...")
+
+        elif choice == "8":
+            check_status()
+
+        elif choice == "9":
+            view_logs()
+
+        elif choice == "10":
+            clear_logs()
+
+        elif choice == "11":
+            settings()
+
+        elif choice == "12":
+            credits()
+
+        elif choice == "13":
+            log("Launcher closed.")
+            print("\nGoodbye!")
+            break
+
+        else:
+            error("Invalid option.")
+            input("\nPress Enter to continue...")
+
+
+# -----------------------------
+# Start
+# -----------------------------
+
+if __name__ == "__main__":
+    setup()
+    log("Launcher started.")
+    main_menu()
